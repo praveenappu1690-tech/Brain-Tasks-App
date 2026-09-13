@@ -1,0 +1,28 @@
+version: 0.2
+
+phases:
+
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - ECR_URI=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/brain-tasks-app
+      - ECR_REGISTRY=$AWS_ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com
+      - aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+  build:
+    commands:
+      - echo Build started on `date`
+      - docker build -t brain-tasks-app:latest .
+      - docker tag brain-tasks-app:latest $ECR_URI:latest
+
+  post_build:
+    commands:
+      - echo Pushing Docker image to ECR...
+      - docker push $ECR_URI:latest
+      - echo Build completed on `date`
+
+artifacts:
+  files:
+    - kubes/deployment.yaml
+    - kubes/service.yaml
